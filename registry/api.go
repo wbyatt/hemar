@@ -125,7 +125,7 @@ func (registry *RegistryApi) PullManifest(repository string, digest string) ([]M
 	return manifest.Layers, nil
 }
 
-func (registry *RegistryApi) PullLayer(repository string, layer ManifestLayer) {
+func (registry *RegistryApi) PullLayer(repository string, layer ManifestLayer, layerPath string) {
 	fmt.Println("Pulling layer:", layer.Digest)
 
 	layerUrl := fmt.Sprintf("%s/%s/blobs/%s", registry.baseUrl, repository, layer.Digest)
@@ -151,7 +151,7 @@ func (registry *RegistryApi) PullLayer(repository string, layer ManifestLayer) {
 		log.Fatalf("Failed to read layer body: %v", err)
 	}
 
-	layerName := fmt.Sprintf("./.hemar/images/%s.tar.gz", layer.Digest[len(layer.Digest)-7:])
+	layerName := fmt.Sprintf("%s/%s.tar.gz", layerPath, layer.Digest)
 	os.WriteFile(layerName, layerData, 0644)
 
 	fmt.Println("Saved layer to", layerName)

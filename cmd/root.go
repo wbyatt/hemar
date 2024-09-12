@@ -7,7 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var imagesPath = "./.hemar/images/"
+var imagesPath = "/home/byatt/hemar/.hemar/images"
+var containersPath = "/home/byatt/hemar/.hemar/containers"
 
 func init() {
 	os.MkdirAll(imagesPath, 0700)
