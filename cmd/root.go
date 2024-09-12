@@ -7,8 +7,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
+var imagesPath = "./.hemar/images/"
 
+func init() {
+	os.MkdirAll(imagesPath, 0700)
 }
 
 func NewHemarCommand() *cobra.Command {
@@ -20,7 +22,7 @@ func NewHemarCommand() *cobra.Command {
 
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			if os.Getuid() != 0 {
-				return errors.New("Must be root to run hemar")
+				return errors.New("must be root to run hemar")
 			}
 
 			return nil
