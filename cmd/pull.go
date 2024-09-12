@@ -28,15 +28,5 @@ var Pull = &cobra.Command{
 		for _, layer := range manifestLayers {
 			registry.PullLayer(repository, layer)
 		}
-
-		// registry.PullLayer(repository, blobReference)
-		// image := args[0]
-
-		// shellCmd := exec.Command("./pull", image)
-		// shellCmd.Stdin, shellCmd.Stdout, shellCmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-
-		// if err := shellCmd.Run(); err != nil {
-		// 	panic("Could not fork")
-		// }
 	},
 }
