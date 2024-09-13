@@ -9,9 +9,11 @@ import (
 
 var imagesPath = "/home/byatt/hemar/.hemar/images"
 var containersPath = "/home/byatt/hemar/.hemar/containers"
+var layersPath = "/home/byatt/hemar/.hemar/layers"
 
 func init() {
 	os.MkdirAll(imagesPath, 0700)
+	os.MkdirAll(layersPath, 0700)
 }
 
 func NewHemarCommand() *cobra.Command {

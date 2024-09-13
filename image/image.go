@@ -1,11 +1,14 @@
 package image
 
 import (
-	"encoding/json"
+	"context"
+	"fmt"
 	"log"
 	"os"
 	"path"
+	"time"
 
+	"github.com/wbyatt/hemar/db"
 	"github.com/wbyatt/hemar/registry"
 )
 
@@ -20,7 +23,8 @@ type ImageLayer struct {
 	Digest string
 }
 
-var imageDirectory = "./.hemar/images"
+var imagesPath = "./.hemar/images"
+var layersPath = "./.hemar/layers"
 
 func NewImage(repository string, tag string) *Image {
 	return &Image{
@@ -30,33 +34,52 @@ func NewImage(repository string, tag string) *Image {
 }
 
 func (image *Image) Pull() {
+	var imageRecord db.Image
+	duckdb := db.DB()
+	defer duckdb.Close()
+
 	registry := registry.NewRegistryApi()
 	latestManifest, err := registry.PullManifestsForTag(image.Repository, image.Tag)
-	image.Digest = latestManifest
-
-	imagePath := path.Join(imageDirectory, image.Repository, image.Tag)
-	os.MkdirAll(imagePath, 0700)
-
 	if err != nil {
 		log.Fatalf("Failed to find a manifest: %v", err)
 	}
+
+	image.Digest = latestManifest
+	imageRecord.Repository = image.Repository
+	imageRecord.Tag = image.Tag
+	imageRecord.Digest = image.Digest
+	imageRecord.CreatedAt = time.Now()
+
+	imageRecord.Insert(context.Background(), duckdb)
 
 	manifestLayers, err := registry.PullManifest(image.Repository, latestManifest)
 	if err != nil {
 		log.Fatalf("Failed to pull manifest: %v", err)
 	}
 
-	for _, layer := range manifestLayers {
-		image.Layers = append(image.Layers, ImageLayer{Digest: layer.Digest})
+	for i, layer := range manifestLayers {
+		var layerRecord db.Layer
+		layerRecord.ImageDigest = image.Digest
+		layerRecord.Digest = layer.Digest
+		layerRecord.CreatedAt = time.Now()
+		layerRecord.Index = i
 
-		registry.PullLayer(image.Repository, layer, imagePath)
-	}
+		exists, err := layerRecord.Exists(context.Background(), duckdb)
+		if err != nil {
+			log.Fatalf("Failed to check if layer exists: %v", err)
+		}
 
-	// Write the image to disk as a json file
-	imageFile, err := os.Create(path.Join(imagePath, "image.json"))
-	if err != nil {
-		log.Fatalf("Failed to create image file: %v", err)
+		if exists {
+			// check for the existence of the file
+			layerPath := path.Join(layersPath, fmt.Sprintf("%s.tar.gz", layer.Digest))
+			if _, err := os.Stat(layerPath); !os.IsNotExist(err) {
+				fmt.Printf("Layer %s already exists, skipping download\n", layer.Digest[12:])
+				continue
+			}
+		}
+
+		registry.PullLayer(image.Repository, layer, layersPath)
+
+		layerRecord.Insert(context.Background(), duckdb)
 	}
-	defer imageFile.Close()
-	json.NewEncoder(imageFile).Encode(image)
 }
