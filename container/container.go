@@ -84,6 +84,11 @@ func (container *Container) MountFilesystem() {
 	}
 }
 
+func (container *Container) Cleanup() {
+	containerPath := path.Join(containerPath, container.Digest)
+	os.RemoveAll(containerPath)
+}
+
 func randomHex() string {
 	bytes := make([]byte, 32)
 

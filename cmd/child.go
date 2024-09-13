@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/sys/unix"
 )
 
 var Child = &cobra.Command{
@@ -35,9 +36,19 @@ func containerize(container string, call string) {
 	}
 	defer oldrootHandle.Close()
 
+	netnsPath := fmt.Sprintf("%s/%s/netns", containersPath, container)
+	netnsFd, err := os.Open(netnsPath)
+	if err != nil {
+		panic(err)
+	}
+	defer netnsFd.Close()
+
+	must(unix.Setns(int(netnsFd.Fd()), syscall.CLONE_NEWNET))
+
 	must(syscall.Sethostname([]byte(container[:8])))
 	must(syscall.Chdir(dir))
 	defer must(syscall.Fchdir(int(oldrootHandle.Fd())))
+
 	must(syscall.Chroot(dir))
 	defer must(syscall.Chroot("."))
 	must(syscall.Mount("proc", "proc", "proc", 0, ""))

@@ -1,10 +1,10 @@
 # Hemar
 
-Named for the oldest container in the world, this is a simple container engine, inspired by the [Containers From Scratch](https://github.com/lizrice/containers-from-scratch) talks by Liz Rice
+Named for the oldest container in the world, this is a simple container engine, inspired by the [Containers From Scratch](https://github.com/lizrice/containers-from-scratch) talks by Liz Rice and heavily influenced by [Vessel](https://github.com/0xc0d/vessel) by Ali Josie
 
 ## Usage
-Right now, `hemar pull [image]` and `hemar run [image] [command]` work.
+Right now, `hemar pull [image]` and `hemar run [image] [command]` work. There is full outbound networking with NAT, but it's pretty brittle. It requires that the outbound network device be named `eth0`, for example.
 
 ## Licensing
 
-For the time being, this is substantially similar to the Liz Rice repository, so it's MIT (c) 2017 Liz Rice. If I make substantial changes, it'll retain MIT.
+This is a learning tool based heavily on work by other people. That work is dual-licensed with Apache 2 and MIT, so this is as well.

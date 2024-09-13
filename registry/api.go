@@ -157,9 +157,6 @@ func (registry *RegistryApi) PullLayer(repository string, layer ManifestLayer, l
 	fmt.Println("Saved layer to", layerName)
 }
 
-func (registry *RegistryApi) downloadLayer(repository string, digest string) {
-}
-
 func (registry *RegistryApi) authorizeForRepo(repository string) {
 	authUrl := fmt.Sprintf("%s?service=registry.docker.io&scope=repository:%s:pull", registry.authUrl, repository)
 
