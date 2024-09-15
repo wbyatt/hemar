@@ -12,6 +12,7 @@ type Image struct {
 	Digest     string
 	CreatedAt  time.Time
 	Size       int
+	Manifest   []byte
 }
 
 func (i *Image) Insert(ctx context.Context, db *sql.DB) error {
@@ -33,6 +34,32 @@ func (i *Image) Exists(ctx context.Context, db *sql.DB) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (i *Image) ExistsByRepositoryAndTag(ctx context.Context, db *sql.DB) (bool, error) {
+	query := `
+		SELECT COUNT(*) FROM images WHERE repository = ? AND tag = ?
+	`
+	var count int
+	err := db.QueryRowContext(ctx, query, i.Repository, i.Tag).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (i *Image) HydrateByRepositoryAndTag(ctx context.Context, db *sql.DB) error {
+	query := `
+		SELECT repository, tag, digest, created_at, size FROM images WHERE repository = ? AND tag = ? LIMIT 1
+	`
+
+	row := db.QueryRowContext(ctx, query, i.Repository, i.Tag)
+	err := row.Scan(&i.Repository, &i.Tag, &i.Digest, &i.CreatedAt, &i.Size)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ListImages(ctx context.Context, db *sql.DB) ([]Image, error) {
@@ -60,4 +87,22 @@ func ListImages(ctx context.Context, db *sql.DB) ([]Image, error) {
 	}
 
 	return images, nil
+}
+
+func GetImage(ctx context.Context, db *sql.DB, repository string, tag string) (Image, error) {
+	query := `
+		SELECT repository, tag, digest, created_at, size FROM images WHERE repository = ? AND tag = ? LIMIT 1
+	`
+
+	row := db.QueryRowContext(ctx, query, repository, tag)
+	var image Image
+	err := row.Scan(&image.Repository, &image.Tag, &image.Digest, &image.CreatedAt, &image.Size)
+	if err != nil {
+		return Image{}, err
+	}
+	return image, nil
+}
+
+func (i *Image) ExtractLayers(ctx context.Context) error {
+
 }

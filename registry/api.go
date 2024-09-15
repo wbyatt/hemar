@@ -51,7 +51,7 @@ func NewRegistryApi() *RegistryApi {
 	}
 }
 
-func (registry *RegistryApi) PullManifestsForTag(repository string, tag string) (string, error) {
+func (registry *RegistryApi) PullManifestsForTag(repository string, tag string) (ManifestListEntry, error) {
 	fmt.Println("Pulling manifest for repository:", repository)
 
 	if registry.token == "" {
@@ -86,11 +86,11 @@ func (registry *RegistryApi) PullManifestsForTag(repository string, tag string) 
 	fmt.Println("Found the following manifests:")
 	for _, manifest := range manifestList.Manifests {
 		if manifest.Platform.Architecture == runtime.GOARCH && manifest.Platform.OS == runtime.GOOS {
-			return manifest.Digest, nil
+			return manifest, nil
 		}
 	}
 
-	return "", errors.New("no manifest found for this architecture and OS")
+	return ManifestListEntry{}, errors.New("no manifest found for this architecture and OS")
 
 }
 

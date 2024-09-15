@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -43,26 +44,31 @@ func (image *Image) Pull() {
 	if err != nil {
 		log.Fatalf("Failed to find a manifest: %v", err)
 	}
+	jsonManifest, err := json.Marshal(latestManifest)
+	if err != nil {
+		log.Fatalf("Failed to marshal manifest: %v", err)
+	}
+	// print the json manifest
+	fmt.Printf("MANIFEST: %s\n", jsonManifest)
 
-	image.Digest = latestManifest
+	image.Digest = latestManifest.Digest
 	imageRecord.Repository = image.Repository
 	imageRecord.Tag = image.Tag
 	imageRecord.Digest = image.Digest
 	imageRecord.CreatedAt = time.Now()
+	imageRecord.Manifest = jsonManifest
 
 	imageRecord.Insert(context.Background(), duckdb)
 
-	manifestLayers, err := registry.PullManifest(image.Repository, latestManifest)
+	manifestLayers, err := registry.PullManifest(image.Repository, latestManifest.Digest)
 	if err != nil {
 		log.Fatalf("Failed to pull manifest: %v", err)
 	}
 
-	for i, layer := range manifestLayers {
+	for _, layer := range manifestLayers {
 		var layerRecord db.Layer
-		layerRecord.ImageDigest = image.Digest
 		layerRecord.Digest = layer.Digest
 		layerRecord.CreatedAt = time.Now()
-		layerRecord.Index = i
 
 		exists, err := layerRecord.Exists(context.Background(), duckdb)
 		if err != nil {
@@ -80,6 +86,8 @@ func (image *Image) Pull() {
 
 		registry.PullLayer(image.Repository, layer, layersPath)
 
-		layerRecord.Insert(context.Background(), duckdb)
+		if err := layerRecord.Insert(context.Background(), duckdb); err != nil {
+			log.Fatalf("Failed to insert layer: %v", err)
+		}
 	}
 }

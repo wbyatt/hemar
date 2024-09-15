@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/wbyatt/hemar/container"
+	"github.com/wbyatt/hemar/db"
 	"github.com/wbyatt/hemar/image"
 	"github.com/wbyatt/hemar/network"
 )
@@ -24,11 +26,32 @@ var Run = &cobra.Command{
 
 func run(commands []string) {
 	fmt.Println("Running command", commands)
+	ctx := context.Background()
+	duckdb := db.DB()
+	defer duckdb.Close()
 
+	// first fetch image from db
 	imageName := commands[0]
+	imageRecord, err := db.GetImage(ctx, duckdb, imageName, "latest")
+	if err != nil {
+		log.Fatalf("Failed to get image: %v", err)
+	}
+
+	image := image.Image{
+		Repository: imageRecord.Repository,
+		Tag:        imageRecord.Tag,
+		Digest:     imageRecord.Digest,
+	}
+
 	container := container.NewContainer(&container.ContainerConfig{
 		Image: image.NewImage(imageName, "latest"),
 	})
+
+	unmounter, err := container.MountFilesystem()
+	if err != nil {
+		log.Fatalf("Failed to mount filesystem: %v", err)
+	}
+	defer unmounter()
 
 	network.SetupBridge("hemar0")
 	defer network.TeardownBridge("hemar0")
@@ -39,9 +62,6 @@ func run(commands []string) {
 		log.Fatalf("Failed to setup network: %v", err)
 	}
 	defer unmountNetwork()
-
-	container.MountFilesystem()
-	defer container.Cleanup()
 
 	commands = append([]string{"child"}, append([]string{container.Digest}, commands[1:]...)...)
 
